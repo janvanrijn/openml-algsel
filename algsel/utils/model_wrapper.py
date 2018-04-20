@@ -22,8 +22,8 @@ class ModelWrapper:
 
     @staticmethod
     def _frame_to_X_and_y(frame, remove_algorithm=False):
-        y = frame['predictive_accuracy']
-        del frame['predictive_accuracy']
+        y = frame['objective_function']
+        del frame['objective_function']
         del frame['instance_id']
         if remove_algorithm:
             del frame['algorithm']

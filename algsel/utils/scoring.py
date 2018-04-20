@@ -18,7 +18,7 @@ def _bootstrap_model_scores(task_scores, n_samples):
 
 
 def oracle_score(dataframe, test_tasks):
-    task_maxscore = dataframe.groupby(['instance_id'], sort=False)['predictive_accuracy'].max().to_dict()
+    task_maxscore = dataframe.groupby(['instance_id'], sort=False)['objective_function'].max().to_dict()
     total_score = 0
     for task_id in test_tasks:
         total_score += task_maxscore[task_id]
@@ -36,7 +36,7 @@ def get_avg_best_algorithm(dataframe, test_tasks):
         setups_frame = dataframe[dataframe['algorithm'] == setup_id]
         for _, row in setups_frame.iterrows():
             if test_tasks is None or row['instance_id'] not in test_tasks:
-                total_score += row['predictive_accuracy']
+                total_score += row['objective_function']
         avg_score_trainset = total_score / len(setups_frame)
         if best_avg_score_trainset is None or avg_score_trainset > best_avg_score_trainset:
             avg_best_algorithm_trainset = setup_id
@@ -47,7 +47,7 @@ def get_avg_best_algorithm(dataframe, test_tasks):
 def average_best_score(dataframe, avg_best_algorithm, test_tasks):
     def get_scores_best_avg(avg_best_algorithm, dataframe):
         derived = dataframe[(dataframe['algorithm'] == avg_best_algorithm)].set_index('instance_id')
-        return derived['predictive_accuracy'].to_dict()
+        return derived['objective_function'].to_dict()
 
     all_scores = get_scores_best_avg(avg_best_algorithm, dataframe)
     total_test_score = 0.0
