@@ -41,7 +41,7 @@ def run(args):
         task_scores[instance_id] = [golden_standard[instance_id][algorithm_id]]
 
     model_score, gap_score_single, gaps_stdev_single = algsel.utils.task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score)
-    print(args.scenario_name)
+    print(args.system, 'on', args.scenario_name)
     print('Oracle', avg_oracle_score)
     print('Single Best', avg_best_score)
     print('Score', model_score, 'GAP', gap_score_single, '+/-',gaps_stdev_single)
