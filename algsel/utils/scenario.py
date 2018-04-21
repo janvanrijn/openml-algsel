@@ -1,4 +1,5 @@
 import arff
+import yaml
 
 import pandas as pd
 
@@ -57,9 +58,15 @@ def get_train_and_test_frame(oasc_scenario_dir, scenario_name):
     meta_arff_test_location = oasc_scenario_dir + 'test/' + scenario_name + '/feature_values.arff'
     runs_arff_test_location = oasc_scenario_dir + 'test/' + scenario_name + '/algorithm_runs.arff'
 
+    description_location = oasc_scenario_dir + 'test/' + scenario_name + '/description.txt'
+
+    with open(description_location, 'r') as fp:
+        description = data = yaml.load(fp)
+    maximize = description['maximize'][0]
+
     train_frame = obtain_dataframe_scenario(meta_arff_train_location, runs_arff_train_location, True, 1)
     test_frame = obtain_dataframe_scenario(meta_arff_test_location, runs_arff_test_location, True, 1)
-    return train_frame, test_frame
+    return train_frame, test_frame, maximize
 
 
 def dataframe_to_scores(dataframe):

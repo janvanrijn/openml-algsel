@@ -17,15 +17,19 @@ def _bootstrap_model_scores(task_scores, n_samples):
     return all_results
 
 
-def oracle_score(dataframe, test_tasks):
-    task_maxscore = dataframe.groupby(['instance_id'], sort=False)['objective_function'].max().to_dict()
+def oracle_score(dataframe, test_tasks, maximize):
+    if maximize:
+        task_maxscore = dataframe.groupby(['instance_id'], sort=False)['objective_function'].max().to_dict()
+    else:
+        task_maxscore = dataframe.groupby(['instance_id'], sort=False)['objective_function'].min().to_dict()
+
     total_score = 0
     for task_id in test_tasks:
         total_score += task_maxscore[task_id]
     return total_score / len(test_tasks)
 
 
-def get_avg_best_algorithm(dataframe, test_tasks):
+def get_avg_best_algorithm(dataframe, test_tasks, maximize):
     setup_ids = set(dataframe['algorithm'])
 
     avg_best_algorithm_trainset = None
@@ -38,7 +42,9 @@ def get_avg_best_algorithm(dataframe, test_tasks):
             if test_tasks is None or row['instance_id'] not in test_tasks:
                 total_score += row['objective_function']
         avg_score_trainset = total_score / len(setups_frame)
-        if best_avg_score_trainset is None or avg_score_trainset > best_avg_score_trainset:
+        if best_avg_score_trainset is None or \
+                (maximize and avg_score_trainset > best_avg_score_trainset) or \
+                (not maximize and avg_score_trainset < best_avg_score_trainset):
             avg_best_algorithm_trainset = setup_id
             best_avg_score_trainset = avg_score_trainset
     return avg_best_algorithm_trainset

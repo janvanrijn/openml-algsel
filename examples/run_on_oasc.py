@@ -19,16 +19,16 @@ def parse_args():
 
 
 def run(args):
-    train_frame, test_frame = algsel.utils.get_train_and_test_frame(args.oasc_scenario_dir, args.scenario_name)
+    train_frame, test_frame, maximize = algsel.utils.get_train_and_test_frame(args.oasc_scenario_dir, args.scenario_name)
 
     test_tasks = set(test_frame['instance_id'].unique())
-    avg_oracle_score = algsel.utils.oracle_score(test_frame, test_tasks)
-    avg_best_algorithm = algsel.utils.get_avg_best_algorithm(train_frame, test_tasks)
+    avg_oracle_score = algsel.utils.oracle_score(test_frame, test_tasks, maximize)
+    avg_best_algorithm = algsel.utils.get_avg_best_algorithm(train_frame, test_tasks, maximize)
     avg_best_score = algsel.utils.average_best_score(test_frame, avg_best_algorithm, test_tasks)
     golden_standard = algsel.utils.dataframe_to_scores(test_frame)
 
     pipeline = sklearn.pipeline.Pipeline(steps=[('imputer', sklearn.preprocessing.Imputer(strategy=args.impute)),
-                                                ('classifier', sklearn.ensemble.RandomForestRegressor(n_estimators=16))])
+                                                ('classifier', sklearn.ensemble.RandomForestRegressor(n_estimators=256))])
 
     meta = algsel.utils.ModelWrapper(pipeline, args.single_model)
     meta.fit(train_frame)
@@ -37,11 +37,17 @@ def run(args):
 
     task_scores = {task_id: list() for task_id in test_tasks}
     for task_id, pred in predictions.items():
-        predicted_algorithm = max(pred.items(), key=operator.itemgetter(1))[0]
+        if maximize:
+            predicted_algorithm = max(pred.items(), key=operator.itemgetter(1))[0]
+        else:
+            predicted_algorithm = min(pred.items(), key=operator.itemgetter(1))[0]
+
         task_scores[task_id].append(golden_standard[task_id][predicted_algorithm])
 
     model_score, gap_score_single, gaps_stdev_single = algsel.utils.task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score)
     print(args.scenario_name)
+    print('Oracle', avg_oracle_score)
+    print('Single Best', avg_best_score)
     print('Score', model_score, 'GAP', gap_score_single, '+/-',gaps_stdev_single)
 
 
