@@ -19,7 +19,8 @@ def parse_args():
 
 
 def run(args):
-    train_frame, test_frame, maximize = algsel.utils.get_train_and_test_frame(args.oasc_scenario_dir, args.scenario_name)
+    train_frame, test_frame, description = algsel.utils.get_train_and_test_frame(args.oasc_scenario_dir, args.scenario_name)
+    maximize = description['maximize'][0]
 
     test_tasks = set(test_frame['instance_id'].unique())
     avg_oracle_score = algsel.utils.oracle_score(test_frame, test_tasks, maximize)

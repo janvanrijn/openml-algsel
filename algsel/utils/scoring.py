@@ -29,7 +29,7 @@ def oracle_score(dataframe, test_tasks, maximize):
     return total_score / len(test_tasks)
 
 
-def get_avg_best_algorithm(dataframe, test_tasks, maximize):
+def get_avg_best_algorithm(dataframe, maximize):
     setup_ids = set(dataframe['algorithm'])
 
     avg_best_algorithm_trainset = None
@@ -39,8 +39,7 @@ def get_avg_best_algorithm(dataframe, test_tasks, maximize):
         total_score = 0
         setups_frame = dataframe[dataframe['algorithm'] == setup_id]
         for _, row in setups_frame.iterrows():
-            if test_tasks is None or row['instance_id'] not in test_tasks:
-                total_score += row['objective_function']
+            total_score += row['objective_function']
         avg_score_trainset = total_score / len(setups_frame)
         if best_avg_score_trainset is None or \
                 (maximize and avg_score_trainset > best_avg_score_trainset) or \

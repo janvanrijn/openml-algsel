@@ -61,12 +61,11 @@ def get_train_and_test_frame(oasc_scenario_dir, scenario_name):
     description_location = oasc_scenario_dir + 'test/' + scenario_name + '/description.txt'
 
     with open(description_location, 'r') as fp:
-        description = data = yaml.load(fp)
-    maximize = description['maximize'][0]
+        description = yaml.load(fp)
 
     train_frame = obtain_dataframe_scenario(meta_arff_train_location, runs_arff_train_location, True, 1)
     test_frame = obtain_dataframe_scenario(meta_arff_test_location, runs_arff_test_location, True, 1)
-    return train_frame, test_frame, maximize
+    return train_frame, test_frame, description
 
 
 def dataframe_to_scores(dataframe):
