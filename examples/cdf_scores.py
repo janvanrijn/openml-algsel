@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     mu = 200
     sigma = 25
-    n_bins = 500
+    n_bins = 5000
 
     fig, ax = plt.subplots(figsize=(8, 4))
 
