@@ -16,6 +16,7 @@ def parse_args():
     parser.add_argument('--repeats', type=int, default=10)
     parser.add_argument('--impute', type=str, default='median')
     parser.add_argument('--model', type=str, default='forest_256')
+    parser.add_argument('--verbose', action='store_true', default=False)
     return parser.parse_args()
 
 
@@ -50,11 +51,11 @@ def run_on_scenario(oasc_scenario_dir, scenario_name, meta, repeats):
     for task_id, scores in task_scores.items():
         if len(scores) != repeats:
             raise ValueError('Expected %d scores, got %d' %(repeats, len(scores)))
-        if np.std(scores) == 0:
-            print('Taks %d all scores equal' %task_id)
+        if np.std(scores) == 0 and args.verbose:
+            print('Instance %d all scores equal' %task_id)
 
-
-    model_score, gap_score_single, gaps_stdev_single = algsel.utils.task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score)
+    res = algsel.utils.task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score)
+    model_score, gap_score_single, gaps_stdev_single = res
     return model_score, gap_score_single, gaps_stdev_single, avg_oracle_score, avg_best_score
 
 
@@ -79,8 +80,8 @@ if __name__ == '__main__':
         for single_model in [True, False]:
             meta = algsel.utils.ModelWrapper(pipeline, single_model)
             print(algsel.utils.get_current_time(), args.model, 'on', scenario_name, '; single model = ', single_model)
-            res = run_on_scenario(args.oasc_scenario_dir, scenario_name, meta, args.repeats)
-            model_score, gap_score_single, gaps_stdev_single, avg_oracle_score, avg_best_score = res
+            result = run_on_scenario(args.oasc_scenario_dir, scenario_name, meta, args.repeats)
+            model_score, gap_score_single, gaps_stdev_single, avg_oracle_score, avg_best_score = result
             print(algsel.utils.get_current_time(), 'Oracle', avg_oracle_score)
             print(algsel.utils.get_current_time(), 'Single Best', avg_best_score)
             print(algsel.utils.get_current_time(), 'Score', model_score, 'GAP', gap_score_single, '+/-', gaps_stdev_single)
