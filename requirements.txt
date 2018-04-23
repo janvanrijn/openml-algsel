@@ -1,7 +1,8 @@
+ConfigSpace
 liac-arff
 matplotlib
 numpy
 pandas
 pyyaml
-scipy
 scikit-learn
+scipy
