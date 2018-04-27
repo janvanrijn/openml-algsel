@@ -20,7 +20,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def run_on_scenario(oasc_scenario_dir, scenario_name, meta, repeats):
+def run_on_scenario(oasc_scenario_dir, scenario_name, meta, repeats, verbose):
     train_frame, test_frame, description = algsel.utils.get_train_and_test_frame(oasc_scenario_dir, scenario_name)
     maximize = description['maximize'][0]
 
@@ -51,7 +51,7 @@ def run_on_scenario(oasc_scenario_dir, scenario_name, meta, repeats):
     for task_id, scores in task_scores.items():
         if len(scores) != repeats:
             raise ValueError('Expected %d scores, got %d' %(repeats, len(scores)))
-        if np.std(scores) == 0 and args.verbose:
+        if np.std(scores) == 0 and verbose:
             print('Instance %d all scores equal' %task_id)
 
     res = algsel.utils.task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score)

@@ -38,6 +38,17 @@ if __name__ == '__main__':
     ax.set_ylim([0,1])
     ax.set_xlim([min(scores),max(scores)])
 
+    annontation_text = 'Score of Submission'
+    ASAP_SCORE = 0.025
+    ASAP_BIN_IDX = max(x for x, lower_limit in enumerate(bins) if lower_limit < ASAP_SCORE) + 1
+    xy_tuple = (bins[ASAP_BIN_IDX], n[ASAP_BIN_IDX])
+    print(xy_tuple)
+
+    ax.axvline(x=1, color='black', ls='dashed')
+    ax.annotate(annontation_text, xy=xy_tuple, xytext=(0.1, 0.2),
+                arrowprops=dict(facecolor='black', shrink=0.05),
+                )
+
 
     # tidy up the figure
     ax.grid(True)
