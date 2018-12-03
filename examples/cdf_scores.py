@@ -1,9 +1,8 @@
+import algsel
 import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
-from examples.calculate_score import calculate_score
 
 
 def parse_args():
@@ -19,7 +18,7 @@ if __name__ == '__main__':
     scores = []
     for file in os.listdir(args.results_dir):
         schedule = os.path.join(args.results_dir, file)
-        _, gap, _, _, _ = calculate_score(args.oasc_scenario_dir, args.scenario_name, schedule)
+        _, gap, _, _, _ = algsel.utils.calculate_oasc_score(args.oasc_scenario_dir, args.scenario_name, schedule)
         scores.append(gap)
 
     np.random.seed(0)
@@ -46,9 +45,7 @@ if __name__ == '__main__':
 
     ax.axvline(x=1, color='black', ls='dashed')
     ax.annotate(annontation_text, xy=xy_tuple, xytext=(0.1, 0.2),
-                arrowprops=dict(facecolor='black', shrink=0.05),
-                )
-
+                arrowprops=dict(facecolor='black', shrink=0.05))
 
     # tidy up the figure
     ax.grid(True)

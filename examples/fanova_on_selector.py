@@ -64,7 +64,7 @@ def run_iteration(args, iteration_id, config):
     single_model = sklearn_params['single_model']
     del sklearn_params['single_model']
     pipeline.set_params(**sklearn_params)
-    meta = algsel.utils.ModelWrapper(pipeline, single_model)
+    meta = algsel.models.SklearnModelWrapper(pipeline, single_model)
     result = run_on_scenario(args.oasc_scenario_dir, args.scenario_name, meta, args.repeats, args.verbose)
 
     with open(cache_file, 'wb') as fp:
