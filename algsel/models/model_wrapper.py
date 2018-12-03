@@ -1,7 +1,9 @@
+import numpy as np
 import pandas as pd
 import sklearn
 
-class ModelWrapper:
+
+class SklearnModelWrapper:
 
     def __init__(self, model, single):
         self.model_template = model
@@ -24,14 +26,13 @@ class ModelWrapper:
     @staticmethod
     def _frame_to_X_and_y(frame, original_columns):
         y = frame['objective_function']
-        del frame['objective_function']
-        del frame['instance_id']
+        frame = frame.drop(['instance_id', 'objective_function'], axis=1)
 
         if original_columns is not None:
             missing_cols = set(original_columns) - set(frame)
             additional_cols = set(frame) - set(original_columns)
             for missing in missing_cols:
-                frame[missing] = 0
+                frame.loc[:, missing] = 0
 
             for additional in additional_cols:
                 del frame[additional]
@@ -46,12 +47,18 @@ class ModelWrapper:
 
         expected_size = int(len(train_dataframe) / len(algorithms))
 
+        columns = None
         for algorithm_id in algorithms:
             train_algorithm = train_dataframe.loc[train_dataframe['algorithm'] == algorithm_id]
             if len(train_algorithm) != expected_size:
-                raise ValueError(
-                    'Train frame wrong size. Excepted %d got %d' % (expected_size, len(train_algorithm)))
-            train_X, train_y, columns = ModelWrapper._frame_to_X_and_y(pd.get_dummies(train_algorithm.drop(['algorithm'], axis=1)), None)
+                raise ValueError('Train frame wrong size. Excepted %d got %d' % (expected_size, len(train_algorithm)))
+            train_X, train_y, curr_columns = SklearnModelWrapper._frame_to_X_and_y(
+                pd.get_dummies(train_algorithm.drop(['algorithm'], axis=1)), None)
+            if columns is None:
+                columns = curr_columns
+            else:
+                if not np.array_equal(columns, curr_columns):
+                    raise ValueError()
             pipeline_algorithm = sklearn.base.clone(pipeline)
             pipeline_algorithm.fit(train_X, train_y)
             models[algorithm_id] = pipeline_algorithm
@@ -71,7 +78,7 @@ class ModelWrapper:
                 test_algorithm = test_frame.loc[test_frame['algorithm'] == algorithm_id]
                 if len(test_algorithm) != 1:
                     raise ValueError()
-                test_X, _, _ = ModelWrapper._frame_to_X_and_y(pd.get_dummies(test_algorithm.drop(['algorithm'], axis=1)), original_columns)
+                test_X, _, _ = SklearnModelWrapper._frame_to_X_and_y(pd.get_dummies(test_algorithm.drop(['algorithm'], axis=1)), original_columns)
                 y_hat = models[algorithm_id].predict(test_X)
 
                 task_algorithm_pred[task_id][algorithm_id] = y_hat[0]
@@ -80,7 +87,7 @@ class ModelWrapper:
     @staticmethod
     def _fit_single_model(train_dataframe, pipeline):
         model = sklearn.base.clone(pipeline)
-        train_X, train_y, columns = ModelWrapper._frame_to_X_and_y(pd.get_dummies(train_dataframe), None)
+        train_X, train_y, columns = SklearnModelWrapper._frame_to_X_and_y(pd.get_dummies(train_dataframe), None)
         model.fit(train_X, train_y)
         return model, columns
 
@@ -98,7 +105,7 @@ class ModelWrapper:
                 test_algorithm = test_frame.loc[test_frame['algorithm_' + str(algorithm_id)] == 1]
                 if len(test_algorithm) != 1:
                     raise ValueError()
-                test_X, _, _ = ModelWrapper._frame_to_X_and_y(test_algorithm, original_columns)
+                test_X, _, _ = SklearnModelWrapper._frame_to_X_and_y(test_algorithm, original_columns)
                 y_hat = model.predict(test_X)
 
                 task_algorithm_pred[task_id][algorithm_id] = y_hat[0]

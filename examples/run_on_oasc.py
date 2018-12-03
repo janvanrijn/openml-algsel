@@ -1,7 +1,9 @@
 import algsel
 import argparse
+import logging
 import numpy as np
 import operator
+import pandas as pd
 import sklearn
 
 import sklearn.pipeline
@@ -32,7 +34,7 @@ def run_on_scenario(oasc_scenario_dir, scenario_name, meta, repeats, verbose):
 
     task_scores = {task_id: list() for task_id in test_tasks}
     for seed in range(repeats):
-        print(algsel.utils.get_current_time(), 'Training model on repeat', seed)
+        logging.info('Training model on repeat %d' % seed)
         meta.model_template.set_params(classifier__random_state=seed)
         meta.fit(train_frame)
 
@@ -52,20 +54,25 @@ def run_on_scenario(oasc_scenario_dir, scenario_name, meta, repeats, verbose):
         if len(scores) != repeats:
             raise ValueError('Expected %d scores, got %d' %(repeats, len(scores)))
         if np.std(scores) == 0 and verbose:
-            print('Instance %d all scores equal' %task_id)
+            print('Instance %d all scores equal' % task_id)
 
     res = algsel.utils.task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score)
     model_score, gap_score_single, gaps_stdev_single = res
     return model_score, gap_score_single, gaps_stdev_single, avg_oracle_score, avg_best_score
 
 
-if __name__ == '__main__':
-    args = parse_args()
+def run(args):
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
 
     if args.scenario_name is not None:
         scenarios = [args.scenario_name]
     else:
-        scenarios = ['Camilla', 'Oberon', 'Titus']
+        scenarios = [
+            'Camilla',
+            'Oberon',
+            # 'Titus'
+        ]
 
     models = {
         'tree': sklearn.tree.DecisionTreeRegressor(),
@@ -78,10 +85,15 @@ if __name__ == '__main__':
 
     for scenario_name in scenarios:
         for single_model in [True, False]:
-            meta = algsel.utils.ModelWrapper(pipeline, single_model)
-            print(algsel.utils.get_current_time(), args.model, 'on', scenario_name, '; single model = ', single_model)
-            result = run_on_scenario(args.oasc_scenario_dir, scenario_name, meta, args.repeats)
+            meta = algsel.models.SklearnModelWrapper(pipeline, single_model)
+            logging.info('%s on %s; single model = %s' % (args.model, scenario_name, single_model))
+            result = run_on_scenario(args.oasc_scenario_dir, scenario_name, meta, args.repeats, args.verbose)
             model_score, gap_score_single, gaps_stdev_single, avg_oracle_score, avg_best_score = result
-            print(algsel.utils.get_current_time(), 'Oracle', avg_oracle_score)
-            print(algsel.utils.get_current_time(), 'Single Best', avg_best_score)
-            print(algsel.utils.get_current_time(), 'Score', model_score, 'GAP', gap_score_single, '+/-', gaps_stdev_single)
+            logging.info('Oracle %f' % avg_oracle_score)
+            logging.info('Single Best %f' % avg_best_score)
+            logging.info('Score %f; GAP %f +/- %f' % (model_score, gap_score_single, gaps_stdev_single))
+
+
+if __name__ == '__main__':
+    pd.options.mode.chained_assignment = 'raise'
+    run(parse_args())
