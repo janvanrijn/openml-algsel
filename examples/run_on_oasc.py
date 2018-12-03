@@ -22,15 +22,30 @@ def parse_args():
     return parser.parse_args()
 
 
+def dataframe_to_scores(dataframe):
+    tasks = dataframe.instance_id.unique()
+    algorithms = dataframe.algorithm.unique()
+    task_algorithm_score = {task: dict() for task in tasks}
+
+    for instance_id in tasks:
+        frame = dataframe[dataframe['instance_id'] == instance_id]
+
+        for algorithm_id in algorithms:
+            score = frame[frame['algorithm'] == algorithm_id]['objective_function'].iloc[0]
+            task_algorithm_score[instance_id][algorithm_id] = score
+
+    return task_algorithm_score
+
+
 def run_on_scenario(oasc_scenario_dir, scenario_name, meta, repeats, verbose):
-    train_frame, test_frame, description = algsel.utils.get_train_and_test_frame(oasc_scenario_dir, scenario_name)
+    train_frame, test_frame, description = algsel.scenario.get_oasc_train_and_test_frame(oasc_scenario_dir, scenario_name)
     maximize = description['maximize'][0]
 
     test_tasks = set(test_frame['instance_id'].unique())
     avg_oracle_score = algsel.utils.oracle_score(test_frame, test_tasks, maximize)
     avg_best_algorithm = algsel.utils.get_avg_best_algorithm(train_frame, maximize)
     avg_best_score = algsel.utils.average_best_score(test_frame, avg_best_algorithm, test_tasks)
-    golden_standard = algsel.utils.dataframe_to_scores(test_frame)
+    golden_standard = algsel.scenario.test_frame_to_scores(test_frame)
 
     task_scores = {task_id: list() for task_id in test_tasks}
     for seed in range(repeats):

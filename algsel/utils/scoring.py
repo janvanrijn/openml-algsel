@@ -82,7 +82,7 @@ def task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score):
 
 
 def calculate_oasc_score(oasc_scenario_dir, scenario_name, schedule_file, SBS_on_testset=True):
-    train_frame, test_frame, description = algsel.utils.get_train_and_test_frame(oasc_scenario_dir, scenario_name)
+    train_frame, test_frame, description = algsel.scenario.get_oasc_train_and_test_frame(oasc_scenario_dir, scenario_name)
     maximize = description['maximize'][0]
     if description['performance_type'][0] != 'solution_quality':
         raise ValueError('Can only calculate quality scenarios')
@@ -94,7 +94,7 @@ def calculate_oasc_score(oasc_scenario_dir, scenario_name, schedule_file, SBS_on
     else:
         avg_best_algorithm = get_avg_best_algorithm(train_frame, maximize)
     avg_best_score = average_best_score(test_frame, avg_best_algorithm, test_tasks)
-    golden_standard = algsel.utils.dataframe_to_scores(test_frame)
+    golden_standard = algsel.scenario.test_frame_to_scores(test_frame)
 
     with open(schedule_file, 'r') as fp:
         schedules = json.load(fp)
