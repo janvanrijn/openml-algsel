@@ -7,15 +7,15 @@ import yaml
 
 
 def get_oasc_train_and_test_frame(oasc_scenario_dir, scenario_name):
-    meta_arff_train_location = oasc_scenario_dir + 'train/' + scenario_name + '/feature_values.arff'
-    runs_arff_train_location = oasc_scenario_dir + 'train/' + scenario_name + '/algorithm_runs.arff'
-    status_arff_train_location = oasc_scenario_dir + 'train/' + scenario_name + '/feature_runstatus.arff'
+    meta_arff_train_location = os.path.join(oasc_scenario_dir, 'train', scenario_name, 'feature_values.arff')
+    runs_arff_train_location = os.path.join(oasc_scenario_dir, 'train', scenario_name, 'algorithm_runs.arff')
+    status_arff_train_location = os.path.join(oasc_scenario_dir, 'train', scenario_name, 'feature_runstatus.arff')
 
-    meta_arff_test_location = oasc_scenario_dir + 'test/' + scenario_name + '/feature_values.arff'
-    runs_arff_test_location = oasc_scenario_dir + 'test/' + scenario_name + '/algorithm_runs.arff'
-    status_arff_test_location = oasc_scenario_dir + 'test/' + scenario_name + '/feature_runstatus.arff'
+    meta_arff_test_location = os.path.join(oasc_scenario_dir, 'test', scenario_name, 'feature_values.arff')
+    runs_arff_test_location = os.path.join(oasc_scenario_dir, 'test', scenario_name, 'algorithm_runs.arff')
+    status_arff_test_location = os.path.join(oasc_scenario_dir, 'test', scenario_name, 'feature_runstatus.arff')
 
-    description_location = oasc_scenario_dir + 'test/' + scenario_name + '/description.txt'
+    description_location = os.path.join(oasc_scenario_dir, 'test', scenario_name, 'description.txt')
 
     with open(description_location, 'r') as fp:
         description = yaml.load(fp)

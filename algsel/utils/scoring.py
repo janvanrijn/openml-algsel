@@ -101,6 +101,8 @@ def calculate_oasc_score(oasc_scenario_dir, scenario_name, schedule_file, SBS_on
 
     task_scores = {}
     for instance, schedule in schedules.items():
+        print(instance)
+        # TODO; this violates an assumption! 
         instance_id = int(instance.split('_')[1])
         algorithm_id = schedule[0][0].split('_')[1]
         task_scores[instance_id] = [golden_standard[instance_id][algorithm_id]]
