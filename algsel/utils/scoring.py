@@ -1,3 +1,5 @@
+import algsel
+import json
 import numpy as np
 import random
 
@@ -77,3 +79,32 @@ def task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score):
         many_gaps.append(gap)
 
     return avg_score, gap_score, np.std(many_gaps)
+
+
+def calculate_oasc_score(oasc_scenario_dir, scenario_name, schedule_file, SBS_on_testset=True):
+    train_frame, test_frame, description = algsel.utils.get_train_and_test_frame(oasc_scenario_dir, scenario_name)
+    maximize = description['maximize'][0]
+    if description['performance_type'][0] != 'solution_quality':
+        raise ValueError('Can only calculate quality scenarios')
+
+    test_tasks = set(test_frame['instance_id'].unique())
+    avg_oracle_score = oracle_score(test_frame, test_tasks, maximize)
+    if SBS_on_testset:
+        avg_best_algorithm = get_avg_best_algorithm(test_frame, maximize)
+    else:
+        avg_best_algorithm = get_avg_best_algorithm(train_frame, maximize)
+    avg_best_score = average_best_score(test_frame, avg_best_algorithm, test_tasks)
+    golden_standard = algsel.utils.dataframe_to_scores(test_frame)
+
+    with open(schedule_file, 'r') as fp:
+        schedules = json.load(fp)
+
+    task_scores = {}
+    for instance, schedule in schedules.items():
+        instance_id = int(instance.split('_')[1])
+        algorithm_id = schedule[0][0].split('_')[1]
+        task_scores[instance_id] = [golden_standard[instance_id][algorithm_id]]
+
+    model_score, gap_score_single, gaps_stdev_single = algsel.utils.task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score)
+
+    return model_score, gap_score_single, gaps_stdev_single, avg_oracle_score, avg_best_score
