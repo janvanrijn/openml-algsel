@@ -1,8 +1,9 @@
 import algsel
+import aslib_scenario
 import argparse
 import logging
-import numpy as np
 import operator
+import os
 import pandas as pd
 import sklearn
 
@@ -15,65 +16,29 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Runs a sklearn algorithm on ASLib splits')
     parser.add_argument('--oasc_scenario_dir', type=str, default='../../oasc/oasc_scenarios/')
     parser.add_argument('--scenario_name', type=str, default='Camilla')
-    parser.add_argument('--repeats', type=int, default=10)
+    parser.add_argument('--random_seed', type=int, default=42)
     parser.add_argument('--impute', type=str, default='median')
     parser.add_argument('--model', type=str, default='forest_256')
     parser.add_argument('--verbose', action='store_true', default=False)
     return parser.parse_args()
 
 
-def dataframe_to_scores(dataframe):
-    tasks = dataframe.instance_id.unique()
-    algorithms = dataframe.algorithm.unique()
-    task_algorithm_score = {task: dict() for task in tasks}
-
-    for instance_id in tasks:
-        frame = dataframe[dataframe['instance_id'] == instance_id]
-
-        for algorithm_id in algorithms:
-            score = frame[frame['algorithm'] == algorithm_id]['objective_function'].iloc[0]
-            task_algorithm_score[instance_id][algorithm_id] = score
-
-    return task_algorithm_score
-
-
-def run_on_scenario(oasc_scenario_dir, scenario_name, meta, repeats, verbose):
+def run_on_scenario(oasc_scenario_dir, scenario_name, meta, random_seed):
     train_frame, test_frame, description = algsel.scenario.get_oasc_train_and_test_frame(oasc_scenario_dir, scenario_name)
     maximize = description['maximize'][0]
 
-    test_tasks = set(test_frame['instance_id'].unique())
-    avg_oracle_score = algsel.utils.oracle_score(test_frame, test_tasks, maximize)
-    avg_best_algorithm = algsel.utils.get_avg_best_algorithm(train_frame, maximize)
-    avg_best_score = algsel.utils.average_best_score(test_frame, avg_best_algorithm, test_tasks)
-    golden_standard = algsel.scenario.test_frame_to_scores(test_frame)
+    meta.model_template.set_params(classifier__random_state=random_seed)
+    meta.fit(train_frame)
+    predictions = meta.predict(test_frame)
 
-    task_scores = {task_id: list() for task_id in test_tasks}
-    for seed in range(repeats):
-        logging.info('Training model on repeat %d' % seed)
-        meta.model_template.set_params(classifier__random_state=seed)
-        meta.fit(train_frame)
-
-        predictions = meta.predict(test_frame)
-
-        for task_id, pred in predictions.items():
-            if maximize:
-                predicted_algorithm = max(pred.items(), key=operator.itemgetter(1))[0]
-            else:
-                predicted_algorithm = min(pred.items(), key=operator.itemgetter(1))[0]
-
-            task_scores[task_id].append(golden_standard[task_id][predicted_algorithm])
-
-    if len(task_scores) != len(test_tasks):
-        raise ValueError()
-    for task_id, scores in task_scores.items():
-        if len(scores) != repeats:
-            raise ValueError('Expected %d scores, got %d' %(repeats, len(scores)))
-        if np.std(scores) == 0 and verbose:
-            print('Instance %d all scores equal' % task_id)
-
-    res = algsel.utils.task_scores_to_avg(task_scores, avg_oracle_score, avg_best_score)
-    model_score, gap_score_single, gaps_stdev_single = res
-    return model_score, gap_score_single, gaps_stdev_single, avg_oracle_score, avg_best_score
+    return_format = dict()
+    for task_id, pred in predictions.items():
+        if maximize:
+            predicted_algorithm = max(pred.items(), key=operator.itemgetter(1))[0]
+        else:
+            predicted_algorithm = min(pred.items(), key=operator.itemgetter(1))[0]
+        return_format[task_id] = [[predicted_algorithm, 99999]]
+    return return_format
 
 
 def run(args):
@@ -102,11 +67,20 @@ def run(args):
         for single_model in [True, False]:
             meta = algsel.models.SklearnModelWrapper(pipeline, single_model)
             logging.info('%s on %s; single model = %s' % (args.model, scenario_name, single_model))
-            result = run_on_scenario(args.oasc_scenario_dir, scenario_name, meta, args.repeats, args.verbose)
-            model_score, gap_score_single, gaps_stdev_single, avg_oracle_score, avg_best_score = result
-            logging.info('Oracle %f' % avg_oracle_score)
-            logging.info('Single Best %f' % avg_best_score)
-            logging.info('Score %f; GAP %f +/- %f' % (model_score, gap_score_single, gaps_stdev_single))
+            schedules = run_on_scenario(args.oasc_scenario_dir, scenario_name, meta, args.random_seed)
+
+            print(schedules)
+
+            # read scenarios
+            test_scenario = aslib_scenario.aslib_scenario.ASlibScenario()
+            test_scenario.read_scenario(dn=os.path.join(args.oasc_scenario_dir, 'test', scenario_name))
+            train_scenario = aslib_scenario.aslib_scenario.ASlibScenario()
+            train_scenario.read_scenario(dn=os.path.join(args.oasc_scenario_dir, 'train', scenario_name))
+
+            validator = algsel.scoring.Validator()
+            # this script assumes quality scenario
+            validator.validate_quality(schedules=schedules, test_scenario=test_scenario,
+                                       train_scenario=train_scenario)
 
 
 if __name__ == '__main__':

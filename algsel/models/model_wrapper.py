@@ -53,7 +53,7 @@ class SklearnModelWrapper:
             if len(train_algorithm) != expected_size:
                 raise ValueError('Train frame wrong size. Excepted %d got %d' % (expected_size, len(train_algorithm)))
             train_X, train_y, curr_columns = SklearnModelWrapper._frame_to_X_and_y(
-                pd.get_dummies(train_algorithm.drop(['algorithm'], axis=1)), None)
+                pd.get_dummies(train_algorithm.drop(['algorithm'], axis=1), columns=['step_1']), None)
             if columns is None:
                 columns = curr_columns
             else:
@@ -78,7 +78,7 @@ class SklearnModelWrapper:
                 test_algorithm = test_frame.loc[test_frame['algorithm'] == algorithm_id]
                 if len(test_algorithm) != 1:
                     raise ValueError()
-                test_X, _, _ = SklearnModelWrapper._frame_to_X_and_y(pd.get_dummies(test_algorithm.drop(['algorithm'], axis=1)), original_columns)
+                test_X, _, _ = SklearnModelWrapper._frame_to_X_and_y(pd.get_dummies(test_algorithm.drop(['algorithm'], axis=1), columns=['step_1']), original_columns)
                 y_hat = models[algorithm_id].predict(test_X)
 
                 task_algorithm_pred[task_id][algorithm_id] = y_hat[0]
@@ -87,7 +87,7 @@ class SklearnModelWrapper:
     @staticmethod
     def _fit_single_model(train_dataframe, pipeline):
         model = sklearn.base.clone(pipeline)
-        train_X, train_y, columns = SklearnModelWrapper._frame_to_X_and_y(pd.get_dummies(train_dataframe), None)
+        train_X, train_y, columns = SklearnModelWrapper._frame_to_X_and_y(pd.get_dummies(train_dataframe, columns=['algorithm', 'step_1']), None)
         model.fit(train_X, train_y)
         return model, columns
 
@@ -99,7 +99,7 @@ class SklearnModelWrapper:
         task_algorithm_pred = {task: dict() for task in test_task_ids}
 
         for task_id in test_task_ids:
-            test_frame = pd.get_dummies(test_dataframe[test_dataframe['instance_id'] == task_id])
+            test_frame = pd.get_dummies(test_dataframe[test_dataframe['instance_id'] == task_id], columns=['algorithm', 'step_1'])
 
             for algorithm_id in algorithms:
                 test_algorithm = test_frame.loc[test_frame['algorithm_' + str(algorithm_id)] == 1]

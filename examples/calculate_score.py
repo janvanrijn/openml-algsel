@@ -1,6 +1,9 @@
+import aslib_scenario
 import algsel
 import argparse
+import json
 import logging
+import os
 
 
 def parse_args():
@@ -20,10 +23,21 @@ if __name__ == '__main__':
     root.setLevel(logging.INFO)
 
     args = parse_args()
+
+    # read scenarios
+    test_scenario = aslib_scenario.aslib_scenario.ASlibScenario()
+    test_scenario.read_scenario(dn=os.path.join(args.oasc_scenario_dir, 'test', args.scenario_name))
+    train_scenario = aslib_scenario.aslib_scenario.ASlibScenario()
+    train_scenario.read_scenario(dn=os.path.join(args.oasc_scenario_dir, 'train', args.scenario_name))
+
+    # read schedule
     schedule_file = args.submissions_dir + '/' + args.system + '/' + args.scenario_name + '.json'
-    res = algsel.utils.calculate_oasc_score(args.oasc_scenario_dir, args.scenario_name, schedule_file, args.SBS_on_testset)
-    model_score, gap_score_single, gaps_stdev_single, avg_oracle_score, avg_best_score = res
-    logging.info('%s on %s' % (args.system, args.scenario_name))
-    logging.info('Oracle %f' % avg_oracle_score)
-    logging.info('Single Best %f' % avg_best_score)
-    logging.info('Score %f; GAP %f +/- %f' % (model_score, gap_score_single, gaps_stdev_single))
+    with open(schedule_file) as fp:
+        schedules = json.load(fp)
+
+    validator = algsel.scoring.Validator()
+
+    if test_scenario.performance_type[0] == 'runtime':
+        validator.validate_runtime(schedules=schedules, test_scenario=test_scenario, train_scenario=train_scenario)
+    else:
+        validator.validate_quality(schedules=schedules, test_scenario=test_scenario, train_scenario=train_scenario)

@@ -6,9 +6,7 @@ import os
 import pandas as pd
 
 
-def obtain_dataframe_scenario(meta_features_path, evaluations_path,
-                              feature_status_path, process_instance_id,
-                              algorithm_id_idx):
+def obtain_dataframe_scenario(meta_features_path: str, evaluations_path: str, feature_status_path: str):
     """
     Loads the scenario files and returns a dataframe with (meta)-features and
     evaluations joined.
@@ -19,14 +17,12 @@ def obtain_dataframe_scenario(meta_features_path, evaluations_path,
     features_arff = arff.load(open(meta_features_path))
     features_columns = [att[0] for att in features_arff['attributes']]
     features = pd.DataFrame(features_arff['data'], columns=features_columns)
-    features['instance_id'] = features['instance_id'].astype(int)
     features = features.set_index(['instance_id', 'repetition'])
 
     # load feature status
     feature_status_arff = arff.load(open(feature_status_path))
     feature_status_columns = [att[0] for att in feature_status_arff['attributes']]
     feature_status = pd.DataFrame(feature_status_arff['data'], columns=feature_status_columns)
-    feature_status['instance_id'] = feature_status['instance_id'].astype(int)
     feature_status = feature_status.set_index(['instance_id', 'repetition'])
 
     # merge feature with feature status
@@ -47,7 +43,6 @@ def obtain_dataframe_scenario(meta_features_path, evaluations_path,
     # further pre-process evaluations
     relevant_fields = ['instance_id', 'algorithm', 'repetition', objective_function]
     evaluations = pd.DataFrame(evaluations_arff['data'], columns=evaluations_columns)[relevant_fields]
-    evaluations['instance_id'] = evaluations['instance_id'].astype(int)
     evaluations = evaluations.set_index(['instance_id', 'repetition'])
 
      # merge
