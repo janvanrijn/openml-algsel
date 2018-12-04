@@ -1,6 +1,3 @@
-# code from https://github.com/mlindauer/OASC_starterkit/blob/master/validation/validate.py.
-# Keep up to date with upstream.
-
 import sys
 import logging
 
@@ -8,7 +5,7 @@ import numpy as np
 
 from aslib_scenario.aslib_scenario import ASlibScenario
 
-__author__ = "Marius Lindauer"
+__author__ = "Marius Lindauer, Jan N. van Rijn"
 __license__ = "BSD"
 
 
@@ -18,7 +15,7 @@ class Stats(object):
 
     def __init__(self, runtime_cutoff: int,
                  maximize: bool):
-        ''' Constructor
+        """ Constructor
 
             Arguments
             ---------
@@ -27,7 +24,7 @@ class Stats(object):
             maximize: bool
                 whether objective has to be maxmized (true)
                 or minimized (false)
-        '''
+        """
         self.par1 = 0.0
         self.par10 = 0.0
         self.timeouts = 0
@@ -44,8 +41,78 @@ class Stats(object):
 
         self.logger = logging.getLogger("Stats")
 
+    def get_time_outs(self, remove_unsolvable: bool) -> int:
+        if remove_unsolvable and self.runtime_cutoff:
+            return self.timeouts - self.unsolvable
+        else:
+            return self.timeouts
+
+    def get_n_samples(self, remove_unsolvable: bool) -> int:
+        if self.runtime_cutoff:
+            return self.get_time_outs(remove_unsolvable) + self.solved
+        else:
+            return self.solved
+
+    def get_par10(self, remove_unsolvable: bool) -> float:
+        if remove_unsolvable and self.runtime_cutoff:
+            return self.par10 - (self.unsolvable * self.runtime_cutoff * 10)
+        else:
+            return self.par10
+
+    def get_par10_oracle(self, remove_unsolvable: bool) -> float:
+        if remove_unsolvable:
+            return self.oracle_par10 - (self.unsolvable * self.runtime_cutoff * 10)
+        else:
+            return self.oracle_par10
+
+    def get_par10_sbs(self, remove_unsolvable: bool) -> float:
+        if remove_unsolvable:
+            return self.sbs_par10 - (self.unsolvable * self.runtime_cutoff * 10)
+        else:
+            return self.sbs_par10
+
+    def get_par1(self, remove_unsolvable: bool) -> float:
+        if remove_unsolvable and self.runtime_cutoff:
+            return self.par1 - (self.unsolvable * self.runtime_cutoff)
+        else:
+            return self.par1
+
+    def get_score(self, remove_unsolvable: bool) -> float:
+        if self.runtime_cutoff:
+            # runtime scenario
+            return self.par10 / self.get_n_samples(remove_unsolvable)
+        else:
+            # quality scenario
+            return self.par1 / self.get_n_samples(remove_unsolvable)
+
+    def get_score_oracle(self, remove_unsolvable: bool) -> float:
+        return self.oracle_par10 / self.get_n_samples(remove_unsolvable)
+
+    def get_score_sbs(self, remove_unsolvable: bool) -> float:
+        return self.sbs_par10 / self.get_n_samples(remove_unsolvable)
+
+    def get_closed_gap(self, remove_unsolvable: bool) -> float:
+        par10 = self.get_par10(remove_unsolvable)
+        sbs = self.get_par10_sbs(remove_unsolvable)
+        oracle = self.get_par10_oracle(remove_unsolvable)
+
+        if self.maximize:
+            return (par10 - sbs) / (oracle - sbs)
+        else:
+            return (sbs - par10) / (sbs - oracle)
+
+    def get_gap_remaining(self, remove_unsolvable: bool) -> float:
+        par10 = self.get_par10(remove_unsolvable)
+        sbs = self.get_par10_sbs(remove_unsolvable)
+        oracle = self.get_par10_oracle(remove_unsolvable)
+
+        if self.maximize:
+            return (oracle - par10) / (oracle - sbs)
+        else:
+            return (par10 - oracle) / (sbs - oracle)
+
     def show(self, remove_unsolvable: bool = True):
-        '''
+        """
             shows statistics
 
             Arguments
@@ -57,65 +124,49 @@ class Stats(object):
             -------
             par10: int
                 penalized average runtime
-        '''
+        """
 
         if remove_unsolvable and self.runtime_cutoff:
             rm_string = "removed"
             self.logger.debug("Statistics before removing unsolvable instances")
-            self.logger.debug("PAR1: %.4f" % (self.par1 / (self.timeouts + self.solved)))
-            self.logger.debug("PAR10: %.4f" % (self.par10 / (self.timeouts + self.solved)))
-            self.logger.debug("Timeouts: %d / %d" % (self.timeouts, self.timeouts + self.solved))
-            timeouts = self.timeouts - self.unsolvable
-            par1 = self.par1 - (self.unsolvable * self.runtime_cutoff)
-            par10 = self.par10 - (self.unsolvable * self.runtime_cutoff * 10)
-            self.oracle_par10 = self.oracle_par10 - (self.unsolvable * self.runtime_cutoff * 10)
-            self.sbs_par10 = self.sbs_par10 - (self.unsolvable * self.runtime_cutoff * 10)
+            self.logger.debug("PAR1: %.4f" % self.get_par1(False))
+            self.logger.debug("PAR10: %.4f" % self.get_par10(False))
+            self.logger.debug("Timeouts: %d / %d" % (self.get_time_outs(False), self.get_n_samples(False)))
         else:
             rm_string = "not removed"
-            timeouts = self.timeouts
-            par1 = self.par1
-            par10 = self.par10
 
         if self.runtime_cutoff:
-
-            n_samples = timeouts + self.solved
-            self.logger.info("PAR1: %.4f" % (par1 / n_samples))
-            self.logger.info("PAR10: %.4f" % (par10 / n_samples))
-            self.logger.info("Timeouts: %d / %d" % (timeouts, n_samples))
-            self.logger.info("Presolved during feature computation: %d / %d" % (self.presolved_feats, n_samples))
-            self.logger.info("Solved: %d / %d" % (self.solved, n_samples))
+            self.logger.info("PAR1: %.4f" % self.get_par1(remove_unsolvable))
+            self.logger.info("PAR10: %.4f" % self.get_par10(remove_unsolvable))
+            self.logger.info("Timeouts: %d / %d" % (self.get_time_outs(remove_unsolvable),
+                                                    self.get_n_samples(remove_unsolvable)))
+            self.logger.info("Presolved during feature computation: %d / %d" % (self.presolved_feats,
+                                                                                self.get_n_samples(remove_unsolvable)))
+            self.logger.info("Solved: %d / %d" % (self.solved, self.get_n_samples(remove_unsolvable)))
             self.logger.info("Unsolvable (%s): %d / %d" %
-                             (rm_string, self.unsolvable, n_samples + self.unsolvable))
+                             (rm_string, self.unsolvable, self.get_n_samples(remove_unsolvable) + self.unsolvable))
         else:
-            n_samples = self.solved
-            self.logger.info("Number of instances: %d" % (n_samples))
-            self.logger.info("Average Solution Quality: %.4f" % (par1 / n_samples))
-            par10 = par1
+            self.logger.info("Number of instances: %d" % self.get_n_samples(remove_unsolvable))
+            self.logger.info("Average Solution Quality: %.4f" % (self.get_par1(remove_unsolvable) / self.get_n_samples(remove_unsolvable)))
 
-        print(">>>>>>>>>>>>>>>>>>>>>")
-        self.logger.info("System: %.4f" % (par10 / n_samples))
-        self.logger.info("Oracle: %.4f" % (self.oracle_par10 / n_samples))
-        self.logger.info("SBS: %.4f" % (self.sbs_par10 / n_samples))
+        self.logger.info(">>>>>>>>>>>>>>>>>>>>>")
+        self.logger.info("System: %.4f" % (self.get_par10(remove_unsolvable) / self.get_n_samples(remove_unsolvable)))
+        self.logger.info("Oracle: %.4f" % (self.get_par10_oracle(remove_unsolvable) / self.get_n_samples(remove_unsolvable)))
+        self.logger.info("SBS: %.4f" % (self.get_par10_sbs(remove_unsolvable) / self.get_n_samples(remove_unsolvable)))
 
-        if self.maximize:
-            self.logger.info("Gap closed: %.4f" % ((par10 - self.sbs_par10) / (self.oracle_par10 - self.sbs_par10)))
-            self.logger.info(
-                "Gap remaining: %.4f" % ((self.oracle_par10 - par10) / (self.oracle_par10 - self.sbs_par10)))
-        else:
-            self.logger.info("Gap closed: %.4f" % ((self.sbs_par10 - par10) / (self.sbs_par10 - self.oracle_par10)))
-            self.logger.info(
-                "Gap remaining: %.4f" % ((par10 - self.oracle_par10) / (self.sbs_par10 - self.oracle_par10)))
+        self.logger.info("Gap closed: %.4f" % self.get_closed_gap(remove_unsolvable))
+        self.logger.info("Gap remaining: %.4f" % self.get_gap_remaining(remove_unsolvable))
 
 
 class Validator(object):
 
     def __init__(self):
-        ''' Constructor '''
+        """ Constructor """
         self.logger = logging.getLogger("Validation")
 
     def validate_runtime(self, schedules: dict, test_scenario: ASlibScenario,
                          train_scenario: ASlibScenario):
-        '''
+        """
             validate selected schedules on test instances for runtime
 
             Arguments
@@ -126,7 +177,7 @@ class Validator(object):
                 ASlib scenario with test instances
             train_scenario: ASlibScenario
                 ASlib scenario with test instances -- required for SBS
-        '''
+        """
         if test_scenario.performance_type[0] != "runtime":
             raise ValueError("Cannot validate non-runtime scenario with runtime validation method")
 
@@ -215,7 +266,7 @@ class Validator(object):
 
     def validate_quality(self, schedules: dict, test_scenario: ASlibScenario,
                          train_scenario: ASlibScenario):
-        '''
+        """
             validate selected schedules on test instances for solution quality
 
             Arguments
@@ -226,7 +277,7 @@ class Validator(object):
                 ASlib scenario with test instances
             train_scenario: ASlibScenario
                 ASlib scenario with test instances -- required for SBS
-        '''
+        """
         if test_scenario.performance_type[0] != "solution_quality":
             raise ValueError("Cannot validate non-solution_quality scenario with solution_quality validation method")
 
@@ -256,11 +307,9 @@ class Validator(object):
 
         for inst, schedule in schedules.items():
             if len(schedule) == 0:
-                # TODO: merge upstream
                 raise ValueError('Found empty schedule for instance %s' % inst)
             for entry in schedule:
                 if isinstance(entry, str):
-                    print('entry is str')
                     if entry in test_scenario.algorithms:
                         selected_algo = entry
                         perf = test_scenario.performance_data[selected_algo][inst]
@@ -276,7 +325,6 @@ class Validator(object):
                     else:
                         self.logger.debug("Skip %s" % (entry))
                 else:
-                    # TODO: merge upstream
                     raise ValueError('schedule entries should be of type str or list')
 
             self.logger.debug("Using %s on %s with performance %f" % (selected_algo, inst, perf))
