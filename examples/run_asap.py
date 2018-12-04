@@ -12,10 +12,11 @@ import tempfile
 def parse_args():
     parser = argparse.ArgumentParser(description='Runs a sklearn algorithm on ASLib splits')
     parser.add_argument('--aslib_scenario_dir', type=str, default=os.path.expanduser('~/projects/aslib_data'))
-    parser.add_argument('--scenario_name', type=str, default='OPENML-WEKA-2017')
+    parser.add_argument('--scenario_name', type=str, default=None)
     parser.add_argument('--n_repetitions', type=int, default=1)
     parser.add_argument('--n_folds', type=int, default=10)
-    parser.add_argument('--output_dir', type=str, default=os.path.expanduser('~/projects/as_insights/ASAPv2'))
+    parser.add_argument('--n_seeds', type=int, default=3)
+    parser.add_argument('--output_dir', type=str, default=os.path.expanduser('~/experiments/as_insights/ASAPv2'))
 
     return parser.parse_args()
 
@@ -30,13 +31,17 @@ def run(args):
     for scenario_name in os.listdir(args.aslib_scenario_dir):
         if args.scenario_name is not None and scenario_name != args.scenario_name:
             continue
-        scenario_results_file = os.path.join(args.output_dir, '%s.csv' % args.scenario_name)
+        scenario_results_file = os.path.join(args.output_dir, '%s_r%d_f%d_s%d.csv' % (args.scenario_name,
+                                                                                      args.n_repetitions,
+                                                                                      args.n_folds,
+                                                                                      args.n_seeds))
         if os.path.isfile(scenario_results_file):
             logging.info('Skipping scenario %s, results already exist')
-        results_frame = pd.DataFrame(columns=['scenario_name', 'strategy_name', 'repetition', 'fold', 'seed', 'PAR10_score'])
+            continue
+        results_frame = pd.DataFrame()
         for repetition in range(1, args.n_repetitions + 1):
             for fold in range(1, args.n_folds + 1):
-                for seed in [1, 2, 3]:
+                for seed in range(1, args.n_seeds + 1):
                     logging.info('Running scenario=%s repetition=%d fold=%d seed=%d' % (scenario_name, repetition, fold, seed))
 
                     # drop the fold files in the proper directory
@@ -74,24 +79,24 @@ def run(args):
                                                            train_scenario=train_scenario)
                     # add score of system
                     result_dict = {
-                        'scenario': scenario_name,
+                        'scenario_name': scenario_name,
                         'strategy_name': 'ASAPv2',
-                        'PAR10_score': stats.get_par10(False),
+                        'PAR10_score': stats.get_score(False),
                         'repetition': repetition,
                         'fold': fold,
                         'seed': seed,
                     }
-                    results_frame.append(pd.DataFrame([result_dict]))
+                    results_frame = results_frame.append(pd.DataFrame([result_dict]))
 
                     # adds SBS score (sanity check)
                     result_dict['strategy_name'] = 'SBS'
-                    result_dict['PAR10_score'] = stats.get_par10_sbs(False)
-                    results_frame.append(pd.DataFrame([result_dict]))
+                    result_dict['PAR10_score'] = stats.get_score_sbs(False)
+                    results_frame = results_frame.append(pd.DataFrame([result_dict]))
 
                     # adds oracle score (sanity check)
                     result_dict['strategy_name'] = 'Oracle'
-                    result_dict['PAR10_score'] = stats.get_par10_oracle(False)
-                    results_frame.append(pd.DataFrame([result_dict]))
+                    result_dict['PAR10_score'] = stats.get_score_oracle(False)
+                    results_frame = results_frame.append(pd.DataFrame([result_dict]))
         results_frame.to_csv(scenario_results_file)
     pass
 
