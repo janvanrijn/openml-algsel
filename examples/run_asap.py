@@ -31,7 +31,7 @@ def run(args):
     for scenario_name in os.listdir(args.aslib_scenario_dir):
         if args.scenario_name is not None and scenario_name != args.scenario_name:
             continue
-        scenario_results_file = os.path.join(args.output_dir, '%s_r%d_f%d_s%d.csv' % (args.scenario_name,
+        scenario_results_file = os.path.join(args.output_dir, '%s_r%d_f%d_s%d.csv' % (scenario_name,
                                                                                       args.n_repetitions,
                                                                                       args.n_folds,
                                                                                       args.n_seeds))
