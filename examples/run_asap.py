@@ -13,7 +13,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--aslib_scenario_dir', type=str, default=os.path.expanduser('~/projects/aslib_data'))
     parser.add_argument('--scenario_name', type=str, default=None)
-    parser.add_argument('--scenario_index', type=int, default=None)
+    parser.add_argument('--scenario_idx', type=int, default=None)
     parser.add_argument('--n_repetitions', type=int, default=1)
     parser.add_argument('--n_folds', type=int, default=10)
     parser.add_argument('--n_seeds', type=int, default=3)
