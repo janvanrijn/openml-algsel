@@ -13,24 +13,32 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--aslib_scenario_dir', type=str, default=os.path.expanduser('~/projects/aslib_data'))
     parser.add_argument('--scenario_name', type=str, default=None)
+    parser.add_argument('--scenario_index', type=int, default=None)
     parser.add_argument('--n_repetitions', type=int, default=1)
     parser.add_argument('--n_folds', type=int, default=10)
     parser.add_argument('--n_seeds', type=int, default=3)
+    parser.add_argument('--asap_venv', type=str, default=os.path.expanduser('~/anaconda3/envs/asap-v2-stable/bin/python'))
+    parser.add_argument('--asap_script', type=str, default=os.path.expanduser('~/projects/asap-v2-stable/src/run_asap.py'))
     parser.add_argument('--output_dir', type=str, default=os.path.expanduser('~/experiments/as_insights/ASAPv2'))
 
     return parser.parse_args()
 
 
 def run(args):
-    command = '/home/janvanrijn/anaconda3/envs/asap-v2-stable/bin/python /home/janvanrijn/projects/asap-v2-stable/src/run_asap.py v2'
+    command = '%s %s v2' % (args.asap_venv, args.asap_script)
+    if args.scenario_name is not None and args.scenario_idx is not None:
+        raise ValueError('Please only set scenario name or scenario index (not both)')
 
     root = logging.getLogger()
     root.setLevel(logging.INFO)
 
     os.makedirs(args.output_dir, exist_ok=True)
-    for scenario_name in os.listdir(args.aslib_scenario_dir):
+    for scenario_idx, scenario_name in enumerate(os.listdir(args.aslib_scenario_dir)):
         if args.scenario_name is not None and scenario_name != args.scenario_name:
             continue
+        if args.scenario_idx is not None and scenario_idx != args.scenario_idx:
+            continue
+        
         scenario_results_file = os.path.join(args.output_dir, '%s_r%d_f%d_s%d.csv' % (scenario_name,
                                                                                       args.n_repetitions,
                                                                                       args.n_folds,
