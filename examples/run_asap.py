@@ -64,8 +64,9 @@ def run(args):
                     logging.info('Command: %s' % total_command)
                     p = subprocess.Popen(total_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=r'/tmp')
                     retval = p.wait()
-                    if retval != 0:
-                        logging.error("\n".join(p.stdout.readlines()))
+                    if retval != -1:
+                        error_lines = [line.decode('utf-8') for line in p.stdout.readlines()]
+                        logging.error("".join(error_lines))
                     system_result_file_path = os.path.join(temp_folder, 'output', 'asap_v2_oasc', 'reg_weight_5e-03', '%s-test.json' % scenario_name)
                     with open(system_result_file_path, 'r') as fp:
                         schedules = json.load(fp)
