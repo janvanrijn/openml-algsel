@@ -64,7 +64,7 @@ def run(args):
                     logging.info('Command: %s' % total_command)
                     p = subprocess.Popen(total_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=r'/tmp')
                     retval = p.wait()
-                    if retval != -1:
+                    if retval != 0:
                         error_lines = [line.decode('utf-8') for line in p.stdout.readlines()]
                         logging.error("".join(error_lines))
                         raise ValueError('Error while running ASAPv2')
